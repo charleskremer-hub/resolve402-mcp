@@ -1,0 +1,96 @@
+{
+  "manifest_version": "0.3",
+  "name": "resolve402",
+  "display_name": "Resolve402",
+  "version": "0.3.0",
+  "description": "French company directors with business email, people search, counterparty checks (KYB) and hiring signals. Paid per call with x402.",
+  "long_description": "Resolve402 gives agents official French company data in one paid call: decision makers with their probable business email (RNE registry), people search by sector, place and size, counterparty checks before invoicing or paying (VAT via VIES, insolvency via BODACC, DG Trésor asset freezes, IBAN), hiring signals from public ATS boards, and document tools. Paid per call with x402 (USDC on Base or Solana). Not found = not charged. Nothing stored.",
+  "author": {
+    "name": "Charles Kremer",
+    "url": "https://resolve402.dev"
+  },
+  "homepage": "https://resolve402.dev",
+  "documentation": "https://resolve402.dev/llms.txt",
+  "license": "MIT",
+  "keywords": [
+    "france",
+    "b2b",
+    "decision-makers",
+    "kyb",
+    "x402",
+    "sales"
+  ],
+  "server": {
+    "type": "node",
+    "entry_point": "index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/index.js"
+      ],
+      "env": {
+        "EVM_PRIVATE_KEY": "${user_config.evm_private_key}",
+        "SVM_PRIVATE_KEY": "${user_config.svm_private_key}",
+        "RESOLVE402_MAX_USD_PER_CALL": "${user_config.max_usd_per_call}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "find_decision_makers",
+      "description": "French company directors with their probable business email (official RNE registry)."
+    },
+    {
+      "name": "people_search",
+      "description": "Decision makers of French companies by role, sector, place and headcount."
+    },
+    {
+      "name": "counterparty_check",
+      "description": "Check a company before invoicing or paying it: status, VAT, insolvency, sanctions, IBAN."
+    },
+    {
+      "name": "hiring_signals",
+      "description": "Open jobs from a company's public ATS board, summarized as buying signals."
+    },
+    {
+      "name": "verify_email",
+      "description": "Email pre-check: syntax, MX, provider, disposable, webmail, role account."
+    },
+    {
+      "name": "doc_to_markdown",
+      "description": "PDF, DOCX, HTML or TXT to clean Markdown with tables."
+    },
+    {
+      "name": "markdown_to_pdf",
+      "description": "Render Markdown into a clean PDF."
+    }
+  ],
+  "user_config": {
+    "evm_private_key": {
+      "type": "string",
+      "title": "Base wallet private key",
+      "description": "0x... key of a dedicated Base wallet holding a few USDC. Optional if a Solana key is set.",
+      "sensitive": true,
+      "required": false
+    },
+    "svm_private_key": {
+      "type": "string",
+      "title": "Solana wallet private key",
+      "description": "Base58 key of a dedicated Solana wallet holding USDC. Optional.",
+      "sensitive": true,
+      "required": false
+    },
+    "max_usd_per_call": {
+      "type": "string",
+      "title": "Max USD per call",
+      "description": "Spending cap per call (default 0.05).",
+      "default": "0.05",
+      "required": false
+    }
+  },
+  "compatibility": {
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "name": "resolve402-mcp",
+  "version": "0.3.0",
+  "description": "MCP server for Resolve402: French company directors with their probable business email, people search by sector and place, counterparty checks before invoicing or paying (VAT, insolvency, sanctions, IBAN), hiring signals from public ATS job boards, and document tools (PDF/DOCX/HTML to Markdown, Markdown to PDF). Paid per call with x402 (USDC on Base or Solana).",
+  "type": "module",
+  "bin": {
+    "resolve402-mcp": "index.js"
+  },
+  "files": [
+    "index.js",
+    "lib.js",
+    "README.md",
+    "server.json"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "mcp",
+    "x402",
+    "france",
+    "company-directors",
+    "dirigeants",
+    "business-email",
+    "lead-enrichment",
+    "siren",
+    "hiring-signals",
+    "job-postings",
+    "intent-data",
+    "pdf",
+    "markdown",
+    "document-parsing",
+    "people-search",
+    "prospecting",
+    "kyb",
+    "counterparty",
+    "vat",
+    "sanctions",
+    "mcprush.com-claim-resolve402-mcp-cd1c53967f4c2a5449f75266"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test lib.test.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
+    "@scure/base": "^1.2.0",
+    "@solana/kit": "^5.1.0",
+    "@x402/evm": "2.27.0",
+    "@x402/fetch": "2.27.0",
+    "@x402/svm": "2.27.0",
+    "viem": "^2.21.0",
+    "zod": "^4.0.0"
+  },
+  "mcpName": "io.github.charleskremer-hub/resolve402",
+  "homepage": "https://resolve402.dev"
+}

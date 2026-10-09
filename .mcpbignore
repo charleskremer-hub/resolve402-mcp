@@ -1,0 +1,6 @@
+lib.test.js
+package-lock.json
+server.json
+glama.json
+.gitignore
+*.mcpb
