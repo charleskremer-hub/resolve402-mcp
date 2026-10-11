@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildUrl, atomicToUsd, decodePaymentRequired, summarizeOffers, selectOffer, validateSiren } from "./lib.js";
+import { buildUrl, atomicToUsd, decodePaymentRequired, summarizeOffers, selectOffer, validateSiren, paymentUnconfirmedMessage } from "./lib.js";
 
 const pr = { accepts: [
   { network: "eip155:8453", amount: "20000", payTo: "0xabc" },
@@ -23,3 +23,11 @@ test("select respects networks and cap", () => {
   assert.equal(selectOffer(pr.accepts, { hasEvm: true, hasSvm: true, maxUsd: 0.01 }).length, 0);
 });
 test("siren", () => { assert.ok(validateSiren("552 032 534")); assert.ok(!validateSiren("12")); });
+
+test("a 402 after a signed payment never claims nothing was charged (#1)", () => {
+  const m = paymentUnconfirmedMessage({ reason: "server answered 402 (settle failed)", offer: pr.accepts[0] });
+  assert.doesNotMatch(m, /nothing charged/i);
+  assert.match(m, /Do NOT retry/);
+  assert.match(m, /0xabc/);
+  assert.match(m, /0\.02 USDC/);
+});

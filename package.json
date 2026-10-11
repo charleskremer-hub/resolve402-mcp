@@ -1,6 +1,6 @@
 {
   "name": "resolve402-mcp",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "MCP server for Resolve402: French company directors with their probable business email, people search by sector and place, counterparty checks before invoicing or paying (VAT, insolvency, sanctions, IBAN), hiring signals from public ATS job boards, and document tools (PDF/DOCX/HTML to Markdown, Markdown to PDF). Paid per call with x402 (USDC on Base or Solana).",
   "type": "module",
   "bin": {

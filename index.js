@@ -9,7 +9,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { DEFAULT_BASE_URL, DEFAULT_MAX_USD, buildUrl, decodePaymentRequired, summarizeOffers, selectOffer, validateSiren, atomicToUsd } from "./lib.js";
+import { DEFAULT_BASE_URL, DEFAULT_MAX_USD, buildUrl, decodePaymentRequired, summarizeOffers, selectOffer, validateSiren, atomicToUsd, paymentUnconfirmedMessage } from "./lib.js";
 
 const BASE_URL = process.env.RESOLVE402_BASE_URL || DEFAULT_BASE_URL;
 const MAX_USD = Number(process.env.RESOLVE402_MAX_USD_PER_CALL || DEFAULT_MAX_USD);
@@ -70,17 +70,25 @@ async function call(path, params, init = {}, onSuccess) {
   const offers = selectOffer(pr?.accepts ?? [], { hasEvm, hasSvm, maxUsd: MAX_USD });
   if (!offers.length) return text(`Price ${price} exceeds the per-call cap (${MAX_USD} USD) or no configured network matches. Nothing paid.`, true);
   const paidFetch = await getPaidFetch();
-  const res = await paidFetch(url, mk());
+  let res;
+  try {
+    res = await paidFetch(url, mk());
+  } catch (e) {
+    // Signing errors happen before anything is sent; past that point the outcome is unknown.
+    const msg = String(e?.message ?? e);
+    if (/No payable offer|private key|signer/i.test(msg)) return text(`Payment not sent: ${msg}. Nothing paid.`, true);
+    return text(paymentUnconfirmedMessage({ reason: `request failed after payment (${msg})`, offer: offers[0] }), true);
+  }
   if (res.status === 402) {
     const again = decodePaymentRequired(res.headers.get("payment-required"));
-    return text(`Payment refused: ${again?.error ?? "unknown reason"} (check the wallet holds USDC on the chosen network). Nothing charged.`, true);
+    return text(paymentUnconfirmedMessage({ reason: `server answered 402 (${again?.error ?? "no reason given"})`, offer: offers[0] }), true);
   }
   if (res.ok && onSuccess) return onSuccess(res);
   const body = await res.text();
   return text(res.ok ? body : `HTTP ${res.status}: ${body}`, !res.ok);
 }
 
-const server = new McpServer({ name: "resolve402", version: "0.3.0" });
+const server = new McpServer({ name: "resolve402", version: "0.3.2" });
 
 server.tool(
   "find_decision_makers",
@@ -99,7 +107,7 @@ server.tool(
 
 server.tool(
   "people_search",
-  "List decision makers (CEO, président, DG, gérant) of French companies matching a sector (NAF section A-U or code like 62.01Z), a place (department, region or postal code) and a minimum headcount, from the official registry (Sirene + RNE). Up to 25 people per call, one per company, with SIREN, NAF, city and size; each result gives the find_decision_makers call for their email. 0.05 USDC per call, charged only if someone matches.",
+  "List decision makers (CEO, président, DG, gérant) of French companies matching a sector (NAF section A-U or code like 62.01Z), a place (department, region or postal code), a minimum headcount and a revenue or net income range, from the official registry (Sirene + RNE). Up to 25 people per call, one per company, with SIREN, NAF, city and size; each result gives the find_decision_makers call for their email. 0.05 USDC per call, charged only if someone matches.",
   {
     role: z.enum(["ceo", "president", "dg", "gerant", "any_executive"]).optional().describe("Default ceo"),
     sector: z.string().optional().describe("NAF section letter (A-U) or NAF code (62.01Z)"),
@@ -108,12 +116,17 @@ server.tool(
     postal_code: z.string().optional().describe("5-digit postal code"),
     min_employees: z.number().int().min(0).optional().describe("Minimum headcount"),
     keywords: z.string().optional().describe("Free text on company name or activity"),
+    min_revenue: z.string().optional().describe("Minimum revenue in EUR, latest published accounts (5000000, 5M, 500k)"),
+    max_revenue: z.string().optional().describe("Maximum revenue in EUR"),
+    min_net_income: z.string().optional().describe("Minimum net income in EUR (0 = profitable only)"),
+    max_net_income: z.string().optional().describe("Maximum net income in EUR (-1 = loss-making only)"),
     limit: z.number().int().min(1).max(25).optional().describe("1-25, default 10"),
     page: z.number().int().min(1).optional().describe("Page of companies, default 1"),
   },
   async (args) => {
-    if (!args.sector && !args.department && !args.region && !args.postal_code && !args.keywords && args.min_employees === undefined)
-      return text("Provide at least one filter: sector, department, region, postal_code, min_employees or keywords.", true);
+    if (!args.sector && !args.department && !args.region && !args.postal_code && !args.keywords && args.min_employees === undefined
+      && !args.min_revenue && !args.max_revenue && !args.min_net_income && !args.max_net_income)
+      return text("Provide at least one filter: sector, department, region, postal_code, min_employees, a revenue or net income bound, or keywords.", true);
     return call("/api/people-search", args);
   },
 );
@@ -137,7 +150,7 @@ server.tool(
 
 server.tool(
   "hiring_signals",
-  "Is a company hiring, how much and for which functions? Open jobs read from its public ATS job board (Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio), summarized as buying signals: open_jobs, posted_last_30d, hiring_intent (low/medium/high), jobs by function (sales, engineering, data...), leadership roles. From a web domain (any country), a French SIREN or a French company name. Chain with find_decision_makers to know who to contact. 0.01 USDC per call, charged only if open jobs are found.",
+  "Is a company hiring, how much and for which functions? Open jobs read from its public ATS job board (Greenhouse, Lever, Ashby, SmartRecruiters, Recruitee, Personio, Workable, Teamtailor, Workday), summarized as buying signals: open_jobs, posted_last_30d, hiring_intent (low/medium/high), jobs by function (sales, engineering, data...), leadership roles. From a web domain (any country), a French SIREN or a French company name. Chain with find_decision_makers to know who to contact. 0.01 USDC per call, charged only if open jobs are found.",
   {
     domain: z.string().optional().describe("Company web domain, e.g. acme.com (any country)"),
     siren: z.string().optional().describe("9-digit French SIREN"),
@@ -160,7 +173,7 @@ server.tool(
 
 server.tool(
   "doc_to_markdown",
-  "Convert a document (PDF, DOCX, HTML, TXT) into clean Markdown for an LLM, with tables extracted as rows, page and char counts. Give a public URL or a local file path (max 10 MB). 0.005 USDC per call. Nothing stored.",
+  "Convert a document (PDF, DOCX, HTML, TXT) or an image into clean Markdown for an LLM, with tables extracted as rows and OCR (French, English) for scanned PDFs and images. Give a public URL or a local file path (max 10 MB). 0.005 USDC per call, only if text is found. Nothing stored.",
   {
     url: z.string().url().optional().describe("Public http(s) URL of the document"),
     file_path: z.string().optional().describe("Local file path (PDF, DOCX, HTML, TXT), sent as the request body instead of url"),

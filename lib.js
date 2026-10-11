@@ -36,3 +36,18 @@ export function selectOffer(accepts, { hasEvm, hasSvm, maxUsd }) {
 export function validateSiren(s) {
   return typeof s === "string" && /^[0-9]{9}$/.test(s.replace(/\s+/g, ""));
 }
+
+/**
+ * Message for a paid request whose outcome is not a success. A 402 or a network error AFTER a signed
+ * payment was sent does not prove nothing was charged: the seller may answer 402 when the facilitator's
+ * /settle reply is late or non-200 although the transfer went through (resolve402-mcp#1). Never tell
+ * the model "nothing charged" here, and tell it not to retry before checking the wallet.
+ */
+export function paymentUnconfirmedMessage({ reason, offer }) {
+  const where = offer?.payTo ? ` to ${offer.payTo} on ${offer.network}` : "";
+  const amount = offer?.amount ? ` of ${atomicToUsd(offer.amount)} USDC` : "";
+  return `Payment not confirmed: ${reason || "unknown reason"}. A signed payment${amount} was sent${where}; ` +
+    "it may or may not have been settled. Do NOT retry this call automatically: first check the wallet's recent " +
+    "USDC transfers (a settled payment appears as a transfer to the address above). If none appears, the wallet " +
+    "probably lacks USDC on that network or the payment was rejected, and a retry is safe.";
+}

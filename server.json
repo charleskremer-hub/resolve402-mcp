@@ -3,13 +3,13 @@
   "name": "io.github.charleskremer-hub/resolve402",
   "title": "Resolve402",
   "description": "French company directors, people search, counterparty checks (KYB) and hiring signals, via x402.",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "websiteUrl": "https://resolve402.dev",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "resolve402-mcp",
-      "version": "0.3.0",
+      "version": "0.3.2",
       "transport": {
         "type": "stdio"
       },

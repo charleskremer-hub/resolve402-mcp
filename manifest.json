@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "resolve402",
   "display_name": "Resolve402",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "French company directors with business email, people search, counterparty checks (KYB) and hiring signals. Paid per call with x402.",
   "long_description": "Resolve402 gives agents official French company data in one paid call: decision makers with their probable business email (RNE registry), people search by sector, place and size, counterparty checks before invoicing or paying (VAT via VIES, insolvency via BODACC, DG Trésor asset freezes, IBAN), hiring signals from public ATS boards, and document tools. Paid per call with x402 (USDC on Base or Solana). Not found = not charged. Nothing stored.",
   "author": {
